@@ -30,7 +30,7 @@
 
 <body ng-app="play" ng-controller="MasterCtrl as c">
     <play-header></play-header>
-    <uib-tabset>
+    <uib-tabset active="0">
         <uib-tab index="$index" heading="{{inst.inst}}" ng-repeat="inst in c.track.insts">
             <div class="container-fluid text-center">
                 <br/>
@@ -52,6 +52,20 @@
             </div>
             <span class="divider"></span>
             <div class="btn btn-warning" ng-click="c.reset()">Reset</div>
+            <span class="divider"></span>
+            <strong>Steps</strong>
+            <select class="form-control" style="width: 100px; display: inline-block;" ng-disabled="c.isPlaying" ng-model="c.stepCount">
+                <option value="16">16</option>
+                <option value="32">32</option>
+                <option value="64">64</option>
+            </select>
+            <strong>Note Length</strong>
+            <select class="form-control" style="width: 100px; display: inline-block;" ng-disabled="c.isPlaying" ng-model="c.stepLen">
+                <option value="4n">1/4</option>
+                <option value="8n">1/8</option>
+                <option value="16n" selected>1/16</option>
+                <option value="32n">1/32</option>
+            </select>
         </div>
     </div>
 </body>

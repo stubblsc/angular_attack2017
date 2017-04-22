@@ -6,7 +6,8 @@
     <hr/>
     <div ng-repeat="r in inst.rows" class="editor-area">
         <div class="row-header">{{ r.note }}</div>
-        <div ng-repeat="s in r.steps track by $index" class="toggle-box {{s.active ? 'active' : ''}} {{$index}}" ng-click="s.active = !s.active"></div>
+        <div ng-repeat="s in r.steps track by $index" class="toggle-box {{s.active ? 'active' : ''}} {{$index}}" ng-click="s.toggle()">
+        </div>
     </div>
     <hr/>
 </div>
