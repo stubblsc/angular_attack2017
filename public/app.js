@@ -144,9 +144,9 @@ app.directive("playHeader", function() {
                             var formData = result.value;
 
                             $auth.submitRegistration(formData).then(function(response){
-                              $('#signin').hide()
-                              $('#register').hide()
-                              $('#signout').show()
+                              $('#signin').toggleClass('hide')
+                              $('#register').toggleClass('hide')
+                              $('#signout').toggleClass('hide')
                             }).catch(function(response){
                                 alert("FAIL")
                             })
@@ -161,9 +161,9 @@ app.directive("playHeader", function() {
                             var formData = result.value;
 
                             $auth.submitLogin(formData).then(function(response){
-                                $('#signin').hide()
-                                $('#register').hide()
-                                $('#signout').show()
+                                $('#signin').toggleClass('hide')
+                                $('#register').toggleClass('hide')
+                                $('#signout').toggleClass('hide')
                             }).catch(function(response){
                                 alert("FAIL")
                             })
@@ -172,9 +172,9 @@ app.directive("playHeader", function() {
                 }
                 $scope.doSignOut = function(){
                   $auth.signOut()
-                  $('#signout').hide()
-                  $('#signin').show()
-                  $('#register').show()
+                  $('#signout').toggleClass('hide')
+                  $('#signin').toggleClass('hide')
+                  $('#register').toggleClass('hide')
                 }
             }
         ],
