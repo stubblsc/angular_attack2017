@@ -1,4 +1,4 @@
-var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog"]);
+var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle']);
 
 var InstrumentList = {
     "synth1": function() {
