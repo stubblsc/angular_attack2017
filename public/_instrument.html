@@ -1,10 +1,12 @@
 <div class="instrument-editor">
     <div>
-        {{inst.inst}}
-        <toggle ng-model="inst.mute" on="mute" off="play" onstyle="btn-warning" offstyle="btn-success" size="btn-sm"></toggle>
+        <h4>{{inst.inst}}</h4>
     </div>
+    <hr/>
+    <hr/>
     <div ng-repeat="r in inst.rows" class="editor-area">
         <div class="row-header">{{ r.note }}</div>
         <div ng-repeat="s in r.steps track by $index" class="toggle-box {{s.active ? 'active' : ''}} {{$index}}" ng-click="s.active = !s.active"></div>
     </div>
+    <hr/>
 </div>
