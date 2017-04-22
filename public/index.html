@@ -11,7 +11,7 @@
 
     <!-- ngDialog CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ng-dialog/1.1.0/css/ngDialog.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ng-dialog/1.1.0/css/ngDialog-theme-plain.css" />
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ng-dialog/1.1.0/css/ngDialog-theme-default.min.css" /> -->
 
     <!-- Tone.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/0.10.0/Tone.min.js"></script>
@@ -68,6 +68,8 @@
                 <option value="16n" selected>1/16</option>
                 <option value="32n">1/32</option>
             </select>
+            <strong>BPM</strong>
+            <input type="number" min="10" max="500" step="1" ng-model="c.bpm" class="form-control" style="width: 100px; display: inline-block;"/>
         </div>
     </div>
 </body>

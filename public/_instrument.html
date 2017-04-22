@@ -3,6 +3,8 @@
         <h4>{{inst.inst}}</h4>
     </div>
     <hr/>
+    <div ng-repeat="fx in inst.fx" class="fx-toggle {{fx.connected ? 'active' : ''}}" ng-click="inst.toggleFx($index)">{{fx.name}}</div>
+    <div class='well' ng-if="!inst.fx.length">No Effects Available</div>
     <hr/>
     <div ng-repeat="r in inst.rows" class="editor-area">
         <div class="row-header">{{ r.note }}</div>
