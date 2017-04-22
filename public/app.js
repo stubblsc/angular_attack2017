@@ -65,7 +65,7 @@ app.controller("MasterCtrl", [
             ["B", 0]
         ];
         var stepLen = "16n"
-        var steps = 64;
+        var steps = 32;
 
         Tone.Transport.loopStart = 0;
         Tone.Transport.loopEnd = Tone.Time(stepLen).mult(steps);
