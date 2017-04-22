@@ -1,4 +1,11 @@
-var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle']);
+var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
+
+app.config(function($authProvider) {
+  $authProvider.configure({
+    // apiUrl: 'https://guccifer-lite.herokuapp.com'
+    apiUrl: 'http://localhost:3000'
+  });
+});
 
 var InstrumentList = {
     "Synth": function() {
@@ -128,8 +135,13 @@ app.directive("playHeader", function() {
         restrict: "E",
         replace: true,
         controller: [
-            "$rootScope", function($rootScope) {
+            "$auth", "$scope", function($auth, $scope, ngDialog) {
                 // handle global events here
+                $auth.submitRegistration({
+                  email:                 'test2@gmail.com',//$scope.email,
+                  password:              'password',//$scope.password,
+                  password_confirmation: 'password'//$scope.passwordConfirmation
+                })
             }
         ],
         templateUrl: "_header.html"
