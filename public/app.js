@@ -41,6 +41,8 @@ app.controller("MasterCtrl", [
             c.isPlaying = false;
         }
 
+        Tone.Transport.bpm.value = 120;
+
         var notes = [
             [
                 "C", 0
@@ -62,29 +64,36 @@ app.controller("MasterCtrl", [
             ],
             ["B", 0]
         ];
-        var stepLen = "8n"
-        var steps = 32;
+        var stepLen = "16n"
+        var steps = 64;
 
         Tone.Transport.loopStart = 0;
         Tone.Transport.loopEnd = Tone.Time(stepLen).mult(steps);
         Tone.Transport.loop = true;
 
-        c.track = new Track();
-        c.track.addInstrument(new Instrument("synth1", Scale(notes, 3, 4), steps, stepLen));
-        c.track.addInstrument(new Instrument("bass1", Scale(notes, 1, 2), steps, stepLen));
-        c.track.addInstrument(new Instrument("drums", [
+        c.track = new Track(steps, stepLen);
+        c.track.addInstrument("synth1", Scale(notes, 3, 4));
+        c.track.addInstrument("bass1", Scale(notes, 1, 2));
+        c.track.addInstrument("drums", [
             "kick",
             "snare1",
             "hat1",
             "hat2",
             "clap",
             "sfx"
-        ], steps, stepLen))
+        ])
         c.track.schedule();
 
         c.reset = function() {
             c.track.reset();
         }
+
+        var _renderloop = new Tone.Loop(function(time) {
+            //triggered every eighth note.
+            var index = Tone.Time(Tone.Transport.position).div(stepLen).toSeconds();
+            $(".toggle-box").removeClass("playing");
+            $(".toggle-box."+ index).addClass("playing");
+        }, stepLen).start(0);
     }
 ]);
 
@@ -109,8 +118,6 @@ app.directive("playInstrument", function() {
             "$scope",
             function($scope) {
                 var c = this;
-
-                console.log($scope.rows);
             }
         ],
         controllerAs: "c",
@@ -123,13 +130,15 @@ app.directive("playInstrument", function() {
 
 /* class definitions */
 
-function Track() {
+function Track(steps, stepLen) {
+    this.steps = steps || 32;
+    this.stepLen = stepLen || "8n";
     this.insts = [];
 }
 
-Track.prototype.addInstrument = function(inst) {
-    console.log("adding " + inst.inst);
-    this.insts.push(inst);
+Track.prototype.addInstrument = function(name, notes) {
+    console.log("adding " + name);
+    this.insts.push(new Instrument(name, notes, this.steps, this.stepLen));
 }
 
 Track.prototype.reset = function() {
