@@ -1,4 +1,11 @@
-var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle']);
+var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
+
+app.config(function($authProvider) {
+    $authProvider.configure({
+        // apiUrl: 'https://guccifer-lite.herokuapp.com'
+        apiUrl: 'http://localhost:3000'
+    });
+});
 
 var InstrumentList = {
     "Synth": function() {
@@ -9,9 +16,7 @@ var InstrumentList = {
     },
     "Drum Machine": function() {
         var drumkit = new Tone.MultiPlayer({
-            "kick": "resources/kick.wav",
-            "snare1": "resources/snare1.wav",
-            "hat1": "resources/hat1.wav",
+            "kick": "resources/kick.wav", "snare1": "resources/snare1.wav", "hat1": "resources/hat1.wav",
             //"hat2": "resources/hat2.wav",
             "clap": "resources/clap.wav",
             "sfx": "resources/sfx.wav"
@@ -70,6 +75,7 @@ app.controller("MasterCtrl", [
 
         c.reset = function() {
             c.track.reset();
+            $(".toggle-box").removeClass("playing");
         }
 
         Tone.Transport.loopStart = 0;
@@ -80,9 +86,7 @@ app.controller("MasterCtrl", [
         c.track.addInstrument("Synth", Scale(notes, 3, 4));
         c.track.addInstrument("Bass", Scale(notes, 1, 2));
         c.track.addInstrument("Drum Machine", [
-            "kick",
-            "snare1",
-            "hat1",
+            "kick", "snare1", "hat1",
             //"hat2",
             "clap",
             "sfx"
@@ -128,8 +132,50 @@ app.directive("playHeader", function() {
         restrict: "E",
         replace: true,
         controller: [
-            "$rootScope", function($rootScope) {
-                // handle global events here
+            "$auth",
+            "$scope",
+            "ngDialog",
+            function($auth, $scope, ngDialog) {
+                $scope.doRegister = function() {
+                    ngDialog.open({ template: '_register-dialog.html', className: 'ngdialog-theme-plain', scope: $scope}).
+                    closePromise.
+                    then(function(result){
+                        if(result.value != null){
+                            var formData = result.value;
+
+                            $auth.submitRegistration(formData).then(function(response){
+                              $('#signin').toggleClass('hide')
+                              $('#register').toggleClass('hide')
+                              $('#signout').toggleClass('hide')
+                            }).catch(function(response){
+                                alert("FAIL")
+                            })
+                        }
+                    })
+                }
+                $scope.doSignIn = function() {
+                    ngDialog.open({ template: '_signin-dialog.html', className: 'ngdialog-theme-plain', scope: $scope}).
+                    closePromise.
+                    then(function(result){
+                        if(result.value != null){
+                            var formData = result.value;
+
+                            $auth.submitLogin(formData).then(function(response){
+                                $('#signin').toggleClass('hide')
+                                $('#register').toggleClass('hide')
+                                $('#signout').toggleClass('hide')
+                            }).catch(function(response){
+                                alert("FAIL")
+                            })
+                        }
+                    })
+                }
+                $scope.doSignOut = function(){
+                  $auth.signOut()
+                  $('#signout').toggleClass('hide')
+                  $('#signin').toggleClass('hide')
+                  $('#register').toggleClass('hide')
+                }
             }
         ],
         templateUrl: "_header.html"
@@ -220,7 +266,7 @@ function Instrument(inst, notes, steps, stepLen) {
 }
 
 Instrument.prototype.toggleFx = function(name) {
-    switch(name){
+    switch (name) {
         case "delay":
         case "reverb":
             this.fx[name].wet = 1 - this.fx[name].wet;
