@@ -1,0 +1,30 @@
+body {
+    padding-top: 70px;
+    background-color: black;
+}
+
+.row-header {
+    width: 100px;
+    text-align: right;
+    display: inline-block;
+    position: relative;
+    bottom: 3px;
+}
+
+.editor-area {
+    line-height: 0;
+    font-family: monospace;
+}
+
+.toggle-box {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin: 1px;
+    background-color: #222;
+    border-radius: 3px;
+}
+
+.toggle-box.active {
+    background-color: gray;
+}

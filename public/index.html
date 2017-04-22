@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <!-- bootstrap -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous" />
+
+    <link rel="stylesheet" href="app.css" />
+
+    <!-- ngDialog CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ng-dialog/1.0.1/css/ngDialog.min.css" integrity="sha256-FF72Wdg9iHjeiA/uA7G3D0IpkL2QSAUTy+X4A+OwY3M=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ng-dialog/1.0.1/css/ngDialog-theme-plain.min.css" integrity="sha256-WfJs+4v1WPCtOYD2QiPYarz+w7Slqf9JfJgv8YqJ+oc=" crossorigin="anonymous" />
+
+    <!-- Tone.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/0.10.0/Tone.min.js" integrity="sha256-l9hVTIAmAZpbR1o6E2Dd8HNNv6qV92V1jaFe539JFU4=" crossorigin="anonymous"></script>
+
+    <!-- angular & modules -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular.min.js" integrity="sha256-3SrLjPeRPa1ofM280r+OMcUjJZKLWJHr6SRtRu3dRb0=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/2.5.0/ui-bootstrap-tpls.min.js" integrity="sha256-tyfWW2LtJQNI+l3F0h6xDV/ij6Mfn8lwSKHWOsmEgXM=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ng-dialog/1.0.1/js/ngDialog.min.js" integrity="sha256-GNjj1gfUh7NUHasL8QRx9h+CLGWT90A7Tf5yaa7QzNs=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.4.2/angular-ui-router.min.js"></script>
+
+    <!-- main app file -->
+    <script src="app.js"></script>
+</head>
+
+<body ng-app="play" ng-controller="MasterCtrl as c">
+    <play-header></play-header>
+    <div class="container">
+        <play-instrument ng-repeat="inst in c.track.insts" name="{{inst.inst}}" rows="inst.rows"></play-instrument>
+    </div>
+    <button ng-click="c.play()">play</button>
+    <button ng-click="c.stop()">stop</button>
+</body>
+
+</html>
