@@ -1,6 +1,10 @@
 body {
     padding-top: 70px;
-    background-color: black;
+    //background-color: black;
+}
+
+.instrument-editor {
+    padding-bottom: 10px;
 }
 
 .row-header {
@@ -26,5 +30,10 @@ body {
 }
 
 .toggle-box.active {
-    background-color: gray;
+    background-color: transparent;
+    box-shadow: 0px 0px 2px springgreen inset;
+}
+
+.toggle-box.playing {
+    border: 1px solid #444;
 }
