@@ -3,6 +3,10 @@ body {
     background-color: black;
 }
 
+.instrument-editor {
+    padding-bottom: 10px;
+}
+
 .row-header {
     width: 100px;
     text-align: right;

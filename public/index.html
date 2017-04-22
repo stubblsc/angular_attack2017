@@ -21,6 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/2.5.0/ui-bootstrap-tpls.min.js" integrity="sha256-tyfWW2LtJQNI+l3F0h6xDV/ij6Mfn8lwSKHWOsmEgXM=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ng-dialog/1.0.1/js/ngDialog.min.js" integrity="sha256-GNjj1gfUh7NUHasL8QRx9h+CLGWT90A7Tf5yaa7QzNs=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/0.4.2/angular-ui-router.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js" integrity="sha256-eZNgBgutLI47rKzpfUji/dD9t6LRs2gI3YqXKdoDOmo=" crossorigin="anonymous"></script>
 
     <!-- main app file -->
     <script src="app.js"></script>
@@ -29,7 +30,7 @@
 <body ng-app="play" ng-controller="MasterCtrl as c">
     <play-header></play-header>
     <div class="container">
-        <play-instrument ng-repeat="inst in c.track.insts" name="{{inst.inst}}" rows="inst.rows"></play-instrument>
+        <play-instrument ng-repeat="inst in c.track.insts" inst="inst"></play-instrument>
     </div>
     <button ng-click="c.play()">play</button>
     <button ng-click="c.stop()">stop</button>
