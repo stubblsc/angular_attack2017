@@ -1,0 +1,7 @@
+<div>
+    <h3>{{name}}</h3>
+    <div ng-repeat="r in rows" class="editor-area">
+        <div class="row-header">{{ r.note }}</div>
+        <div ng-repeat="s in r.steps track by $index" class="toggle-box {{s.active ? 'active' : ''}}" ng-click="s.active = !s.active"></div>
+    </div>
+</div>
