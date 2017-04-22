@@ -1,13 +1,13 @@
 var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle']);
 
 var InstrumentList = {
-    "synth1": function() {
+    "Synth": function() {
         return new Tone.PolySynth(12, Tone.AMSynth);
     },
-    "bass1": function() {
+    "Bass": function() {
         return new Tone.PolySynth(12, Tone.FMSynth)
     },
-    "drums": function() {
+    "Drum Machine": function() {
         var drumkit = new Tone.MultiPlayer({
             "kick": "resources/kick.wav",
             "snare1": "resources/snare1.wav",
@@ -72,9 +72,9 @@ app.controller("MasterCtrl", [
         Tone.Transport.loop = true;
 
         c.track = new Track(steps, stepLen);
-        c.track.addInstrument("synth1", Scale(notes, 3, 4));
-        c.track.addInstrument("bass1", Scale(notes, 1, 2));
-        c.track.addInstrument("drums", [
+        c.track.addInstrument("Synth", Scale(notes, 3, 4));
+        c.track.addInstrument("Bass", Scale(notes, 1, 2));
+        c.track.addInstrument("Drum Machine", [
             "kick",
             "snare1",
             "hat1",

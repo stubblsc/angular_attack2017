@@ -30,11 +30,30 @@
 
 <body ng-app="play" ng-controller="MasterCtrl as c">
     <play-header></play-header>
-    <div class="container-fluid text-center">
-        <play-instrument ng-repeat="inst in c.track.insts" inst="inst"></play-instrument>
+    <uib-tabset>
+        <uib-tab index="$index" heading="{{inst.inst}}" ng-repeat="inst in c.track.insts">
+            <div class="container-fluid text-center">
+                <br/>
+                <play-instrument inst="inst"></play-instrument>
+            </div>
+        </uib-tab>
+    </uib-tabset>
+    <div class="footer">
+        <div class="container text-center">
+            <span ng-repeat="inst in c.track.insts">
+                <toggle ng-model="inst.mute" on="<s>{{inst.inst}}</s>" off="{{inst.inst}}" onstyle="btn-default" offstyle="btn-success" ></toggle>
+            </span>
+            <span class="divider"></span>
+            <div class="btn btn-primary" ng-click="c.play()" ng-if="!c.isPlaying">
+                <i class="glyphicon glyphicon-play"></i>
+            </div>
+            <div class="btn btn-danger" ng-click="c.stop()" ng-if="c.isPlaying">
+                <i class="glyphicon glyphicon-stop"></i>
+            </div>
+            <span class="divider"></span>
+            <div class="btn btn-warning" ng-click="c.reset()">Reset</div>
+        </div>
     </div>
-    <button ng-click="c.play()">play</button>
-    <button ng-click="c.stop()">stop</button>
 </body>
 
 </html>

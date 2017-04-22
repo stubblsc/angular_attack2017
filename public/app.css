@@ -3,12 +3,34 @@ body {
     //background-color: black;
 }
 
+.footer {
+    position: absolute;
+    height: 60px;
+    background-color: #222;
+    width: 100%;
+    bottom: 0;
+    padding: 5px;
+}
+
+span.divider {
+    height: 30px;
+    width: 2px;
+    position: relative;
+    top: 10px;
+    margin: 0px;
+    padding: 0px;
+    background-color: gray;
+    margin-left: 10px;
+    margin-right: 10px;
+    display: inline-block;
+}
+
 .instrument-editor {
     padding-bottom: 10px;
 }
 
 .row-header {
-    width: 100px;
+    width: 50px;
     text-align: right;
     display: inline-block;
     position: relative;
