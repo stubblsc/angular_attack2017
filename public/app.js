@@ -75,6 +75,7 @@ app.controller("MasterCtrl", [
 
         c.reset = function() {
             c.track.reset();
+            $(".toggle-box").removeClass("playing");
         }
 
         Tone.Transport.loopStart = 0;
@@ -143,12 +144,37 @@ app.directive("playHeader", function() {
                             var formData = result.value;
 
                             $auth.submitRegistration(formData).then(function(response){
-                                alert("SUCCEED")
+                              $('#signin').hide()
+                              $('#register').hide()
+                              $('#signout').show()
                             }).catch(function(response){
                                 alert("FAIL")
                             })
                         }
                     })
+                }
+                $scope.doSignIn = function() {
+                    ngDialog.open({ template: '_signin-dialog.html', className: 'ngdialog-theme-plain', scope: $scope}).
+                    closePromise.
+                    then(function(result){
+                        if(result.value != null){
+                            var formData = result.value;
+
+                            $auth.submitLogin(formData).then(function(response){
+                                $('#signin').hide()
+                                $('#register').hide()
+                                $('#signout').show()
+                            }).catch(function(response){
+                                alert("FAIL")
+                            })
+                        }
+                    })
+                }
+                $scope.doSignOut = function(){
+                  $auth.signOut()
+                  $('#signout').hide()
+                  $('#signin').show()
+                  $('#register').show()
                 }
             }
         ],
