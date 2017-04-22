@@ -2,7 +2,7 @@
     <div class="row">
         <div class="col-xs-2">
             <h4>{{inst.inst}}</h4>
-            <toggle ng-model="inst.mute" on="" off="playing"></toggle>
+            <toggle ng-model="inst.mute" on="mute" off="play" onstyle="btn-warning" offstyle="btn-success" size="btn-sm"></toggle>
         </div>
         <div class="col-xs-10">
             <div ng-repeat="r in inst.rows" class="editor-area">

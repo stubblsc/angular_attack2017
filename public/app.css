@@ -30,5 +30,7 @@ body {
 }
 
 .toggle-box.active {
-    background-color: gray;
+    //background: linear-gradient(180deg, transparent 50%, springgreen);
+    background-color: transparent;
+    box-shadow: 0px 0px 2px springgreen inset;
 }
