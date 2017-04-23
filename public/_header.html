@@ -5,13 +5,13 @@
         </div>
     </div>
     <div class='pull-right'>
-      <div id='signin' class='navbar-brand pull-left' ng-click="doSignIn()">
+      <div id='signin' class='navbar-brand pull-left' ng-click="doSignIn()" ng-class="{disabled: user.signedIn}">
         Sign In
       </div>
-      <div id='register' class='navbar-brand pull-left' ng-click="doRegister()">
+      <div id='register' class='navbar-brand pull-left' ng-click="doRegister()" ng-class="{disabled: user.signedIn}">
         Register
       </div>
-      <div id='signout' class='hide navbar-brand pull-left' ng-click="doSignOut()">
+      <div id='signout' class='hide navbar-brand pull-left' ng-click="doSignOut()" ng-class="{disabled: !user.signedIn}">
         Sign Out
       </div>
     </di>
