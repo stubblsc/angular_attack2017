@@ -147,7 +147,7 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", function($rs, $scope) {
 	Tone.Transport.loopEnd = Tone.Time(c.stepLen).mult(c.stepCount);
 	Tone.Transport.loop = true;
 
-	c.track = new Track(c.stepCount, c.stepLen);
+	c.track = new Song(c.stepCount, c.stepLen);
 	c.track.addInstrument("Synth", Scale(notes, 3, 4));
 	c.track.addInstrument("Bass", Scale(notes, 1, 2));
 	c.track.addInstrument("Drum Machine", ["kick", "snare1", "hat1", "clap", "sfx"]);
@@ -219,41 +219,40 @@ app.directive("playInstrument", function() {
 
 /* class definitions */
 
-function Track(steps, stepLen) {
-	this.steps = steps || 32;
-	this.stepLen = stepLen || "8n";
-	this.insts = [];
-	this.parts = [];
+function Song(steps, stepLen) {
+  this.steps = steps || 32;
+  this.stepLen = stepLen || "8n";
+  this.insts = [];
+  this.parts = [];
 }
 
-Track.prototype.addInstrument = function(name, notes) {
-	this.insts.push(new Instrument(name, notes, this.steps, this.stepLen));
+Song.prototype.addInstrument = function(name, notes) {
+  this.insts.push(new Instrument(name, notes, this.steps, this.stepLen));
 }
 
-Track.prototype.reset = function() {
-	for (var i in this.insts) {
-		this.insts[i].reset()
-	}
+Song.prototype.reset = function() {
+  for (var i in this.insts) {
+    this.insts[i].reset()
+  }
 }
 
-Track.prototype.schedule = function() {
-	for (var i in this.insts) {
-		this.insts[i].schedule();
-	}
+Song.prototype.schedule = function() {
+  for (var i in this.insts) {
+    this.insts[i].schedule();
+  }
 }
 
-Track.prototype.resize = function(newCount, newLen) {
-	Tone.Transport.clear()
-	this.steps = newCount;
-	this.stepLen = newLen;
-	for (var i in this.insts) {
-		this.insts[i].resize(newCount, newLen);
-	}
+Song.prototype.resize = function(newCount, newLen) {
+  Tone.Transport.clear()
+  this.steps = newCount;
+  this.stepLen = newLen;
+  for (var i in this.insts) {
+    this.insts[i].resize(newCount, newLen);
+  }
 }
 
-Track.prototype.serialize = function() {
-	var obj = {};
-
+Song.prototype.serialize = function() {
+  var obj = {};
 }
 
 // instrument represents a collection
