@@ -1,9 +1,10 @@
 class CommentsController < ApplicationController
-  before_action :set_comment, only: [:show, :update, :destroy]
+  before_action :set_comment, only: [:show]
+  before_action :authenticate_user!, only: [:create]
 
-  # GET /comments
+  # GET /comments/:song_id
   def index
-    @comments = Comment.all
+    @comments = Comment.where(song_id: params[:song_id])
 
     render json: @comments
   end
@@ -22,20 +23,6 @@ class CommentsController < ApplicationController
     else
       render json: @comment.errors, status: :unprocessable_entity
     end
-  end
-
-  # PATCH/PUT /comments/1
-  def update
-    if @comment.update(comment_params)
-      render json: @comment
-    else
-      render json: @comment.errors, status: :unprocessable_entity
-    end
-  end
-
-  # DELETE /comments/1
-  def destroy
-    @comment.destroy
   end
 
   private
