@@ -30,7 +30,7 @@ app.service("userSession", function($auth, $rootScope, ngDialog) {
     modalForm("_login.html", $rootScope).then(function(data) {
       if (data.value != null) {
         $auth.submitLogin(data.value).then(function(resp) {
-          currentUserData = resp.data;
+          currentUserData = resp;
           $rootScope.$broadcast("play:user:authenticated");
         }).catch(function(resp) {
           // TODO
@@ -174,7 +174,6 @@ app.directive("playHeader", function() {
           userSession.logout();
         }
         $scope.signedIn = function() {
-          alert(currentUserData)
           return userSession.currentUser() != null
         }
       }
