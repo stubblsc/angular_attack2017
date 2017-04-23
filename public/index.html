@@ -26,14 +26,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ng-token-auth/0.0.29/ng-token-auth.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ng-dialog/1.1.0/js/ngDialog.js"></script>
 
-    <!-- main app file -->
+    <!-- main app files -->
+    <script src="src/Step.js"></script>
+    <script src="src/Scale.js"></script>
+    <script src="src/Row.js"></script>
+    <script src="src/Track.js"></script>
+    <script src="src/Song.js"></script>
     <script src="app.js"></script>
 </head>
 
 <body ng-app="play" ng-controller="MasterCtrl as c">
     <play-header></play-header>
     <uib-tabset active="0">
-        <uib-tab index="$index" heading="{{inst.inst}}" ng-repeat="inst in c.track.insts">
+        <uib-tab index="$index" heading="{{inst.name}}" ng-repeat="inst in c.track.insts track by $index">
             <div class="container-fluid text-center">
                 <br/>
                 <play-instrument inst="inst"></play-instrument>
@@ -42,11 +47,19 @@
     </uib-tabset>
     <div class="footer">
         <div class="container text-center">
+            <div class="btn btn-success" ng-click="c.save()">
+                Save
+            </div>
+            <span class="divider"></span>
+            <div class="btn btn-info" ng-click="c.load()">
+                Load
+            </div>
+            <span class="divider"></span>
             <span ng-repeat="inst in c.track.insts">
-                <toggle ng-model="inst.mute" on="<s>{{inst.inst}}</s>" off="{{inst.inst}}" onstyle="btn-default" offstyle="btn-success" ></toggle>
+                <toggle ng-model="inst.mute" on="<s>{{inst.name}}</s>" off="{{inst.name}}" ng-click="inst.syncMuteWithDef()" onstyle="btn-default" offstyle="btn-success" ></toggle>
             </span>
             <span class="divider"></span>
-            <div class="btn btn-primary" ng-click="c.play()" ng-if="!c.isPlaying">
+            <div class="btn btn-primary" ng-click="c.play()" ng-if="!c.isPlaying" ng-disabled="c.track == null">
                 <i class="glyphicon glyphicon-play"></i>
             </div>
             <div class="btn btn-danger" ng-click="c.stop()" ng-if="c.isPlaying">
