@@ -173,6 +173,10 @@ app.directive("playHeader", function() {
         $scope.doSignOut = function() {
           userSession.logout();
         }
+        $scope.signedIn = function() {
+          alert(currentUserData)
+          return userSession.currentUser() != null
+        }
       }
     ],
     templateUrl: "_header.html"
