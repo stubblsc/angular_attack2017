@@ -1,4 +1,4 @@
-Songvar app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
+var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
 
 app.service("instruments", function() {
 	var instruments = {
