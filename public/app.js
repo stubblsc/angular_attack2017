@@ -1,25 +1,15 @@
 var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
 
-app.service("instruments", function() {
-	var instruments = {
-
-	}
-
-	this.get = function(name) {}
-});
-
-app.service("effects", function() {});
-
 app.service("userSession", function($auth, $rootScope, ngDialog) {
-    var currentUserData = null;
+	var currentUserData = null;
 
-    $rootScope.$on("auth:validation-success", function(evt, data){
-        currentUserData = data;
-    })
+	$rootScope.$on("auth:validation-success", function(evt, data) {
+		currentUserData = data;
+	})
 
-    $rootScope.$on("auth:validation-error", function(){
-        // probably do nothing for now, but we'll revisit later
-    })
+	$rootScope.$on("auth:validation-error", function() {
+		// probably do nothing for now, but we'll revisit later
+	})
 
 	this.register = function() {
 		modalForm("_register.html", $rootScope).then(function(data) {
@@ -69,26 +59,36 @@ app.service("userSession", function($auth, $rootScope, ngDialog) {
 })
 
 var InstrumentList = {
-	"Synth": function() {
-		return new Tone.PolySynth(12, Tone.AMSynth);
+	"Synth": {
+		componentName: "AMSynth",
+		polyVoices: 12,
+		effects: [{
+				connected: true,
+				def: {
+					effectName: "PingPongDelay"
+				}
+			},
+			{
+				connected: false,
+				def: {
+					effectName: "Freeverb"
+				}
+			}
+		]
 	},
-	"Bass": function() {
-		return new Tone.PolySynth(12, Tone.FMSynth)
+	"Bass": {
+		componentName: "FMSynth",
+		polyVoices: 12
 	},
-	"Drum Machine": function() {
-		var drumkit = new Tone.MultiPlayer({
+	"Drum Machine": {
+		componentName: "MultiPlayer",
+		buffers: {
 			"kick": "resources/kick.wav",
 			"snare1": "resources/snare1.wav",
 			"hat1": "resources/hat1.wav",
 			"clap": "resources/clap.wav",
 			"sfx": "resources/sfx.wav"
-		}, Tone.noOp)
-
-		drumkit.triggerAttackRelease = function(name, dur, time) {
-			drumkit.start(name, time, 0);
 		}
-
-		return drumkit;
 	}
 };
 
@@ -140,7 +140,29 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", function($rs, $scope) {
 
 	c.reset = function() {
 		c.stop();
+		Tone.Transport.cancel(0);
 		c.track.reset();
+        _renderloop = restartRenderLoop();
+	}
+
+	c.save = function() {
+		SAVED = JSON.stringify(c.track.serialize());
+	}
+
+	c.load = function() {
+		var payload = JSON.parse(SAVED);
+
+		var newSong = new Song(payload.steps, payload.stepLen);
+
+		for (var t in payload.tracks) {
+			newSong.addTrack(payload.tracks[t])
+		}
+        c.track.dispose();
+        c.track = null;
+		c.track = newSong;
+		c.stepLen = payload.stepLen;
+		c.stepCount = String(payload.steps);
+		//newSong.schedule();
 	}
 
 	Tone.Transport.loopStart = 0;
@@ -148,9 +170,22 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", function($rs, $scope) {
 	Tone.Transport.loop = true;
 
 	c.track = new Song(c.stepCount, c.stepLen);
-	c.track.addInstrument("Synth", Scale(notes, 3, 4));
-	c.track.addInstrument("Bass", Scale(notes, 1, 2));
-	c.track.addInstrument("Drum Machine", ["kick", "snare1", "hat1", "clap", "sfx"]);
+	c.track.addTrack({
+		name: "Lead",
+		instDef: InstrumentList["Synth"],
+		notes: Scale(notes, 3, 4)
+	});
+
+	c.track.addTrack({
+		name: "Bassline",
+		instDef: InstrumentList["Bass"],
+		notes: Scale(notes, 1, 2)
+	});
+	c.track.addTrack({
+		name: "Drums",
+		instDef: InstrumentList["Drum Machine"],
+		notes: ["kick", "snare1", "hat1", "clap", "sfx"]
+	});
 
 	var _renderloop;
 
@@ -161,11 +196,14 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", function($rs, $scope) {
 		c.track.resize(Number(c.stepCount), c.stepLen);
 		Tone.Transport.loopEnd = Tone.Time(c.stepLen).mult(c.stepCount);
 		c.track.schedule();
-		if (_renderloop) {
-			_renderloop.stop();
+		_renderloop = restartRenderLoop();
+	}
+
+	function restartRenderLoop() {
+        if (_renderloop) {
+			_renderloop.dispose()
 		}
-		_renderloop = new Tone.Loop(function(time) {
-			//triggered every eighth note.
+		return new Tone.Loop(function(time) {
 			var index = Tone.Time(Tone.Transport.position).div(c.stepLen).toSeconds();
 			$(".toggle-box").removeClass("playing");
 			$(".toggle-box." + index).addClass("playing");
@@ -217,187 +255,4 @@ app.directive("playInstrument", function() {
 	}
 });
 
-/* class definitions */
-
-function Song(steps, stepLen) {
-  this.steps = steps || 32;
-  this.stepLen = stepLen || "8n";
-  this.insts = [];
-  this.parts = [];
-}
-
-Song.prototype.addInstrument = function(name, notes) {
-  this.insts.push(new Instrument(name, notes, this.steps, this.stepLen));
-}
-
-Song.prototype.reset = function() {
-  for (var i in this.insts) {
-    this.insts[i].reset()
-  }
-}
-
-Song.prototype.schedule = function() {
-  for (var i in this.insts) {
-    this.insts[i].schedule();
-  }
-}
-
-Song.prototype.resize = function(newCount, newLen) {
-  Tone.Transport.clear()
-  this.steps = newCount;
-  this.stepLen = newLen;
-  for (var i in this.insts) {
-    this.insts[i].resize(newCount, newLen);
-  }
-}
-
-Song.prototype.serialize = function() {
-  var obj = {};
-}
-
-// instrument represents a collection
-// of steps in different rows
-function Instrument(inst, notes, steps, stepLen, initialFx) {
-	var ix = this;
-	ix.notes = notes;
-	ix.inst = inst;
-	ix.rows = new Array(ix.notes.length)
-	ix.stepsPerRow = steps;
-	ix.stepLen = stepLen;
-	ix.events = [];
-	ix.bus = Tone.Master;
-
-	ix.mute = false;
-
-	ix.fx = initialFx || [];
-
-	ix.__inst = InstrumentList[ix.inst]();
-	ix.__inst.fan.apply(ix.__inst, ix.fx.filter(function(i) {
-		return i.connected
-	}).map(function(i) {
-		return i.effect
-	}))
-	ix.__inst.connect(Tone.Master);
-
-	for (var i = 0; i < ix.rows.length; i++) {
-		ix.rows[i] = new Row(ix.notes[i], ix.stepsPerRow, this.stepLen);
-	}
-}
-
-Instrument.prototype.toggleFx = function(index) {
-	var fx = this.fx[index];
-
-	if (fx.connected) {
-		fx.connected = false;
-		this.__inst.disconnect(fx.effect)
-	} else {
-		fx.connected = true;
-		this.__inst.connect(fx.effect)
-	}
-}
-
-Instrument.prototype.setVolume = function(newDB) {
-	this.__inst.volume.value = newDB;
-}
-
-Instrument.prototype.resize = function(newCount, newLen) {
-	this.stepsPerRow = newCount;
-	this.stepLen = newLen;
-
-	for (var i = 0; i < this.rows.length; i++) {
-		var newRow = new Row(this.notes[i], this.stepsPerRow, this.stepLen);
-		for (var j = 0; j < Math.min(this.rows[i].steps.length, newRow.steps.length); j++) {
-			newRow.steps[j].active = this.rows[i].steps[j].active
-		}
-
-		this.rows[i] = newRow;
-	}
-}
-
-Instrument.prototype.reset = function() {
-	for (var i = 0; i < this.rows.length; i++) {
-		this.rows[i].reset();
-	}
-}
-
-Instrument.prototype.cleanup = function() {
-	for (var e in this.events) {
-		Tone.Transport.clear(this.events[e]);
-	}
-
-	this.events = [];
-}
-
-Instrument.prototype.schedule = function() {
-	var ix = this;
-
-	ix.cleanup();
-
-	for (var i = 0; i < ix.stepsPerRow; i++) {
-		for (var k = 0; k < ix.rows.length; k++) {
-			(function(step) {
-				ix.events.push(Tone.Transport.schedule(function(time) {
-					if (!ix.mute && step.active) {
-						ix.__inst.triggerAttackRelease(step.note, ix.stepLen, time);
-					}
-				}, step.time));
-			})(ix.rows[k].steps[i])
-		}
-	}
-}
-
-// row represents a sequence of steps for a given note
-function Row(note, size, stepLen) {
-	this.note = note;
-	this.steps = new Array(size);
-
-	for (var i = 0; i < this.steps.length; i++) {
-		this.steps[i] = new Step(this.note, Tone.Time(stepLen).mult(i).toNotation());
-	}
-}
-
-Row.prototype.reset = function() {
-	for (var i = 0; i < this.steps.length; i++) {
-		this.steps[i].reset();
-	}
-}
-
-// step contains information regarding whether a note should
-// be played at a particular moment in time
-function Step(note, time) {
-	this.time = time;
-	this.note = note;
-	this.active = false;
-}
-
-Step.prototype.reset = function() {
-	this.active = false;
-}
-
-// step::toggle toggles the active state of the step
-Step.prototype.toggle = function() {
-	console.log(this.time);
-	this.active = !this.active;
-}
-
-function Scale(scaleDef, startOctave, endOctave) {
-	var scale = [];
-
-	if (typeof startOctave != "number") {
-		startOctave = 4;
-	}
-
-	if (typeof endOctave != "number") {
-		endOctave = startOctave;
-	}
-
-	for (var i = startOctave; i <= endOctave; i++) {
-		var oct = scaleDef.map(function(c) {
-			return c[0] + "" + (c[1] + i)
-		})
-
-		scale = scale.concat(oct);
-	}
-
-	return scale.reverse();
-}
+var SAVED = '{"steps":16, "bpm": 120, "stepLen":"16n","tracks":[{"name":"Lead","instDef":{"componentName":"AMSynth","polyVoices":12,"effects":[{"connected":false,"def":{"effectName":"PingPongDelay","options":{}}},{"connected":true,"def":{"effectName":"Freeverb","options":{}}}],"options":{},"buffers":null},"notes":["B4","A4","G4","F4","E4","D4","C4","B3","A3","G3","F3","E3","D3","C3"],"rows":[{"note":"B4","steps":[{"time":"0","note":"B4","active":false},{"time":"16n","note":"B4","active":false},{"time":"8n","note":"B4","active":false},{"time":"8n + 16n","note":"B4","active":false},{"time":"4n","note":"B4","active":false},{"time":"4n + 16n","note":"B4","active":false},{"time":"4n + 8n","note":"B4","active":false},{"time":"4n + 8n + 16n","note":"B4","active":false},{"time":"2n","note":"B4","active":false},{"time":"2n + 16n","note":"B4","active":false},{"time":"2n + 8n","note":"B4","active":false},{"time":"2n + 8n + 16n","note":"B4","active":false},{"time":"2n + 4n","note":"B4","active":false},{"time":"2n + 4n + 16n","note":"B4","active":false},{"time":"2n + 4n + 8n","note":"B4","active":false},{"time":"2n + 4n + 8n + 16n","note":"B4","active":false}],"$$hashKey":"object:1195"},{"note":"A4","steps":[{"time":"0","note":"A4","active":false},{"time":"16n","note":"A4","active":false},{"time":"8n","note":"A4","active":false},{"time":"8n + 16n","note":"A4","active":false},{"time":"4n","note":"A4","active":false},{"time":"4n + 16n","note":"A4","active":false},{"time":"4n + 8n","note":"A4","active":false},{"time":"4n + 8n + 16n","note":"A4","active":false},{"time":"2n","note":"A4","active":false},{"time":"2n + 16n","note":"A4","active":false},{"time":"2n + 8n","note":"A4","active":false},{"time":"2n + 8n + 16n","note":"A4","active":false},{"time":"2n + 4n","note":"A4","active":false},{"time":"2n + 4n + 16n","note":"A4","active":false},{"time":"2n + 4n + 8n","note":"A4","active":false},{"time":"2n + 4n + 8n + 16n","note":"A4","active":false}],"$$hashKey":"object:1196"},{"note":"G4","steps":[{"time":"0","note":"G4","active":false},{"time":"16n","note":"G4","active":false},{"time":"8n","note":"G4","active":false},{"time":"8n + 16n","note":"G4","active":false},{"time":"4n","note":"G4","active":false},{"time":"4n + 16n","note":"G4","active":false},{"time":"4n + 8n","note":"G4","active":false},{"time":"4n + 8n + 16n","note":"G4","active":false},{"time":"2n","note":"G4","active":false},{"time":"2n + 16n","note":"G4","active":false},{"time":"2n + 8n","note":"G4","active":false},{"time":"2n + 8n + 16n","note":"G4","active":false},{"time":"2n + 4n","note":"G4","active":false},{"time":"2n + 4n + 16n","note":"G4","active":false},{"time":"2n + 4n + 8n","note":"G4","active":false},{"time":"2n + 4n + 8n + 16n","note":"G4","active":false}],"$$hashKey":"object:1197"},{"note":"F4","steps":[{"time":"0","note":"F4","active":false},{"time":"16n","note":"F4","active":false},{"time":"8n","note":"F4","active":false},{"time":"8n + 16n","note":"F4","active":false},{"time":"4n","note":"F4","active":false},{"time":"4n + 16n","note":"F4","active":false},{"time":"4n + 8n","note":"F4","active":false},{"time":"4n + 8n + 16n","note":"F4","active":false},{"time":"2n","note":"F4","active":false},{"time":"2n + 16n","note":"F4","active":false},{"time":"2n + 8n","note":"F4","active":false},{"time":"2n + 8n + 16n","note":"F4","active":false},{"time":"2n + 4n","note":"F4","active":false},{"time":"2n + 4n + 16n","note":"F4","active":false},{"time":"2n + 4n + 8n","note":"F4","active":false},{"time":"2n + 4n + 8n + 16n","note":"F4","active":false}],"$$hashKey":"object:1198"},{"note":"E4","steps":[{"time":"0","note":"E4","active":false},{"time":"16n","note":"E4","active":false},{"time":"8n","note":"E4","active":false},{"time":"8n + 16n","note":"E4","active":false},{"time":"4n","note":"E4","active":false},{"time":"4n + 16n","note":"E4","active":false},{"time":"4n + 8n","note":"E4","active":false},{"time":"4n + 8n + 16n","note":"E4","active":false},{"time":"2n","note":"E4","active":false},{"time":"2n + 16n","note":"E4","active":false},{"time":"2n + 8n","note":"E4","active":false},{"time":"2n + 8n + 16n","note":"E4","active":false},{"time":"2n + 4n","note":"E4","active":false},{"time":"2n + 4n + 16n","note":"E4","active":false},{"time":"2n + 4n + 8n","note":"E4","active":false},{"time":"2n + 4n + 8n + 16n","note":"E4","active":false}],"$$hashKey":"object:1199"},{"note":"D4","steps":[{"time":"0","note":"D4","active":false},{"time":"16n","note":"D4","active":false},{"time":"8n","note":"D4","active":true},{"time":"8n + 16n","note":"D4","active":false},{"time":"4n","note":"D4","active":false},{"time":"4n + 16n","note":"D4","active":false},{"time":"4n + 8n","note":"D4","active":false},{"time":"4n + 8n + 16n","note":"D4","active":false},{"time":"2n","note":"D4","active":false},{"time":"2n + 16n","note":"D4","active":false},{"time":"2n + 8n","note":"D4","active":false},{"time":"2n + 8n + 16n","note":"D4","active":false},{"time":"2n + 4n","note":"D4","active":false},{"time":"2n + 4n + 16n","note":"D4","active":false},{"time":"2n + 4n + 8n","note":"D4","active":false},{"time":"2n + 4n + 8n + 16n","note":"D4","active":false}],"$$hashKey":"object:1200"},{"note":"C4","steps":[{"time":"0","note":"C4","active":true},{"time":"16n","note":"C4","active":false},{"time":"8n","note":"C4","active":false},{"time":"8n + 16n","note":"C4","active":false},{"time":"4n","note":"C4","active":true},{"time":"4n + 16n","note":"C4","active":false},{"time":"4n + 8n","note":"C4","active":false},{"time":"4n + 8n + 16n","note":"C4","active":false},{"time":"2n","note":"C4","active":false},{"time":"2n + 16n","note":"C4","active":false},{"time":"2n + 8n","note":"C4","active":false},{"time":"2n + 8n + 16n","note":"C4","active":false},{"time":"2n + 4n","note":"C4","active":false},{"time":"2n + 4n + 16n","note":"C4","active":false},{"time":"2n + 4n + 8n","note":"C4","active":false},{"time":"2n + 4n + 8n + 16n","note":"C4","active":false}],"$$hashKey":"object:1201"},{"note":"B3","steps":[{"time":"0","note":"B3","active":false},{"time":"16n","note":"B3","active":false},{"time":"8n","note":"B3","active":false},{"time":"8n + 16n","note":"B3","active":false},{"time":"4n","note":"B3","active":false},{"time":"4n + 16n","note":"B3","active":false},{"time":"4n + 8n","note":"B3","active":false},{"time":"4n + 8n + 16n","note":"B3","active":false},{"time":"2n","note":"B3","active":false},{"time":"2n + 16n","note":"B3","active":false},{"time":"2n + 8n","note":"B3","active":false},{"time":"2n + 8n + 16n","note":"B3","active":false},{"time":"2n + 4n","note":"B3","active":false},{"time":"2n + 4n + 16n","note":"B3","active":false},{"time":"2n + 4n + 8n","note":"B3","active":false},{"time":"2n + 4n + 8n + 16n","note":"B3","active":false}],"$$hashKey":"object:1202"},{"note":"A3","steps":[{"time":"0","note":"A3","active":false},{"time":"16n","note":"A3","active":false},{"time":"8n","note":"A3","active":false},{"time":"8n + 16n","note":"A3","active":false},{"time":"4n","note":"A3","active":false},{"time":"4n + 16n","note":"A3","active":true},{"time":"4n + 8n","note":"A3","active":false},{"time":"4n + 8n + 16n","note":"A3","active":false},{"time":"2n","note":"A3","active":false},{"time":"2n + 16n","note":"A3","active":false},{"time":"2n + 8n","note":"A3","active":false},{"time":"2n + 8n + 16n","note":"A3","active":false},{"time":"2n + 4n","note":"A3","active":false},{"time":"2n + 4n + 16n","note":"A3","active":false},{"time":"2n + 4n + 8n","note":"A3","active":false},{"time":"2n + 4n + 8n + 16n","note":"A3","active":false}],"$$hashKey":"object:1203"},{"note":"G3","steps":[{"time":"0","note":"G3","active":false},{"time":"16n","note":"G3","active":false},{"time":"8n","note":"G3","active":false},{"time":"8n + 16n","note":"G3","active":false},{"time":"4n","note":"G3","active":false},{"time":"4n + 16n","note":"G3","active":false},{"time":"4n + 8n","note":"G3","active":false},{"time":"4n + 8n + 16n","note":"G3","active":false},{"time":"2n","note":"G3","active":false},{"time":"2n + 16n","note":"G3","active":false},{"time":"2n + 8n","note":"G3","active":false},{"time":"2n + 8n + 16n","note":"G3","active":false},{"time":"2n + 4n","note":"G3","active":false},{"time":"2n + 4n + 16n","note":"G3","active":false},{"time":"2n + 4n + 8n","note":"G3","active":false},{"time":"2n + 4n + 8n + 16n","note":"G3","active":false}],"$$hashKey":"object:1204"},{"note":"F3","steps":[{"time":"0","note":"F3","active":false},{"time":"16n","note":"F3","active":false},{"time":"8n","note":"F3","active":false},{"time":"8n + 16n","note":"F3","active":false},{"time":"4n","note":"F3","active":false},{"time":"4n + 16n","note":"F3","active":false},{"time":"4n + 8n","note":"F3","active":false},{"time":"4n + 8n + 16n","note":"F3","active":false},{"time":"2n","note":"F3","active":false},{"time":"2n + 16n","note":"F3","active":false},{"time":"2n + 8n","note":"F3","active":false},{"time":"2n + 8n + 16n","note":"F3","active":false},{"time":"2n + 4n","note":"F3","active":false},{"time":"2n + 4n + 16n","note":"F3","active":false},{"time":"2n + 4n + 8n","note":"F3","active":false},{"time":"2n + 4n + 8n + 16n","note":"F3","active":false}],"$$hashKey":"object:1205"},{"note":"E3","steps":[{"time":"0","note":"E3","active":false},{"time":"16n","note":"E3","active":false},{"time":"8n","note":"E3","active":false},{"time":"8n + 16n","note":"E3","active":false},{"time":"4n","note":"E3","active":false},{"time":"4n + 16n","note":"E3","active":false},{"time":"4n + 8n","note":"E3","active":false},{"time":"4n + 8n + 16n","note":"E3","active":false},{"time":"2n","note":"E3","active":false},{"time":"2n + 16n","note":"E3","active":false},{"time":"2n + 8n","note":"E3","active":false},{"time":"2n + 8n + 16n","note":"E3","active":false},{"time":"2n + 4n","note":"E3","active":false},{"time":"2n + 4n + 16n","note":"E3","active":false},{"time":"2n + 4n + 8n","note":"E3","active":false},{"time":"2n + 4n + 8n + 16n","note":"E3","active":false}],"$$hashKey":"object:1206"},{"note":"D3","steps":[{"time":"0","note":"D3","active":false},{"time":"16n","note":"D3","active":false},{"time":"8n","note":"D3","active":false},{"time":"8n + 16n","note":"D3","active":false},{"time":"4n","note":"D3","active":false},{"time":"4n + 16n","note":"D3","active":false},{"time":"4n + 8n","note":"D3","active":false},{"time":"4n + 8n + 16n","note":"D3","active":false},{"time":"2n","note":"D3","active":false},{"time":"2n + 16n","note":"D3","active":false},{"time":"2n + 8n","note":"D3","active":false},{"time":"2n + 8n + 16n","note":"D3","active":false},{"time":"2n + 4n","note":"D3","active":false},{"time":"2n + 4n + 16n","note":"D3","active":false},{"time":"2n + 4n + 8n","note":"D3","active":false},{"time":"2n + 4n + 8n + 16n","note":"D3","active":false}],"$$hashKey":"object:1207"},{"note":"C3","steps":[{"time":"0","note":"C3","active":false},{"time":"16n","note":"C3","active":false},{"time":"8n","note":"C3","active":false},{"time":"8n + 16n","note":"C3","active":false},{"time":"4n","note":"C3","active":false},{"time":"4n + 16n","note":"C3","active":false},{"time":"4n + 8n","note":"C3","active":false},{"time":"4n + 8n + 16n","note":"C3","active":false},{"time":"2n","note":"C3","active":false},{"time":"2n + 16n","note":"C3","active":false},{"time":"2n + 8n","note":"C3","active":false},{"time":"2n + 8n + 16n","note":"C3","active":false},{"time":"2n + 4n","note":"C3","active":false},{"time":"2n + 4n + 16n","note":"C3","active":false},{"time":"2n + 4n + 8n","note":"C3","active":false},{"time":"2n + 4n + 8n + 16n","note":"C3","active":false}],"$$hashKey":"object:1208"}]},{"name":"Bassline","instDef":{"componentName":"FMSynth","polyVoices":12,"effects":[],"options":{},"buffers":null},"notes":["B2","A2","G2","F2","E2","D2","C2","B1","A1","G1","F1","E1","D1","C1"],"rows":[{"note":"B2","steps":[{"time":"0","note":"B2","active":false},{"time":"16n","note":"B2","active":false},{"time":"8n","note":"B2","active":false},{"time":"8n + 16n","note":"B2","active":false},{"time":"4n","note":"B2","active":false},{"time":"4n + 16n","note":"B2","active":false},{"time":"4n + 8n","note":"B2","active":false},{"time":"4n + 8n + 16n","note":"B2","active":false},{"time":"2n","note":"B2","active":false},{"time":"2n + 16n","note":"B2","active":false},{"time":"2n + 8n","note":"B2","active":false},{"time":"2n + 8n + 16n","note":"B2","active":false},{"time":"2n + 4n","note":"B2","active":false},{"time":"2n + 4n + 16n","note":"B2","active":false},{"time":"2n + 4n + 8n","note":"B2","active":false},{"time":"2n + 4n + 8n + 16n","note":"B2","active":false}],"$$hashKey":"object:1447"},{"note":"A2","steps":[{"time":"0","note":"A2","active":false},{"time":"16n","note":"A2","active":false},{"time":"8n","note":"A2","active":false},{"time":"8n + 16n","note":"A2","active":false},{"time":"4n","note":"A2","active":false},{"time":"4n + 16n","note":"A2","active":false},{"time":"4n + 8n","note":"A2","active":false},{"time":"4n + 8n + 16n","note":"A2","active":false},{"time":"2n","note":"A2","active":false},{"time":"2n + 16n","note":"A2","active":false},{"time":"2n + 8n","note":"A2","active":false},{"time":"2n + 8n + 16n","note":"A2","active":false},{"time":"2n + 4n","note":"A2","active":false},{"time":"2n + 4n + 16n","note":"A2","active":false},{"time":"2n + 4n + 8n","note":"A2","active":false},{"time":"2n + 4n + 8n + 16n","note":"A2","active":false}],"$$hashKey":"object:1448"},{"note":"G2","steps":[{"time":"0","note":"G2","active":false},{"time":"16n","note":"G2","active":false},{"time":"8n","note":"G2","active":false},{"time":"8n + 16n","note":"G2","active":false},{"time":"4n","note":"G2","active":false},{"time":"4n + 16n","note":"G2","active":false},{"time":"4n + 8n","note":"G2","active":false},{"time":"4n + 8n + 16n","note":"G2","active":true},{"time":"2n","note":"G2","active":false},{"time":"2n + 16n","note":"G2","active":false},{"time":"2n + 8n","note":"G2","active":false},{"time":"2n + 8n + 16n","note":"G2","active":false},{"time":"2n + 4n","note":"G2","active":false},{"time":"2n + 4n + 16n","note":"G2","active":false},{"time":"2n + 4n + 8n","note":"G2","active":false},{"time":"2n + 4n + 8n + 16n","note":"G2","active":false}],"$$hashKey":"object:1449"},{"note":"F2","steps":[{"time":"0","note":"F2","active":false},{"time":"16n","note":"F2","active":false},{"time":"8n","note":"F2","active":false},{"time":"8n + 16n","note":"F2","active":false},{"time":"4n","note":"F2","active":false},{"time":"4n + 16n","note":"F2","active":false},{"time":"4n + 8n","note":"F2","active":false},{"time":"4n + 8n + 16n","note":"F2","active":false},{"time":"2n","note":"F2","active":false},{"time":"2n + 16n","note":"F2","active":false},{"time":"2n + 8n","note":"F2","active":false},{"time":"2n + 8n + 16n","note":"F2","active":false},{"time":"2n + 4n","note":"F2","active":false},{"time":"2n + 4n + 16n","note":"F2","active":false},{"time":"2n + 4n + 8n","note":"F2","active":false},{"time":"2n + 4n + 8n + 16n","note":"F2","active":false}],"$$hashKey":"object:1450"},{"note":"E2","steps":[{"time":"0","note":"E2","active":false},{"time":"16n","note":"E2","active":false},{"time":"8n","note":"E2","active":false},{"time":"8n + 16n","note":"E2","active":false},{"time":"4n","note":"E2","active":false},{"time":"4n + 16n","note":"E2","active":false},{"time":"4n + 8n","note":"E2","active":false},{"time":"4n + 8n + 16n","note":"E2","active":false},{"time":"2n","note":"E2","active":false},{"time":"2n + 16n","note":"E2","active":false},{"time":"2n + 8n","note":"E2","active":false},{"time":"2n + 8n + 16n","note":"E2","active":false},{"time":"2n + 4n","note":"E2","active":false},{"time":"2n + 4n + 16n","note":"E2","active":false},{"time":"2n + 4n + 8n","note":"E2","active":false},{"time":"2n + 4n + 8n + 16n","note":"E2","active":false}],"$$hashKey":"object:1451"},{"note":"D2","steps":[{"time":"0","note":"D2","active":false},{"time":"16n","note":"D2","active":false},{"time":"8n","note":"D2","active":false},{"time":"8n + 16n","note":"D2","active":false},{"time":"4n","note":"D2","active":false},{"time":"4n + 16n","note":"D2","active":false},{"time":"4n + 8n","note":"D2","active":false},{"time":"4n + 8n + 16n","note":"D2","active":true},{"time":"2n","note":"D2","active":false},{"time":"2n + 16n","note":"D2","active":false},{"time":"2n + 8n","note":"D2","active":false},{"time":"2n + 8n + 16n","note":"D2","active":false},{"time":"2n + 4n","note":"D2","active":false},{"time":"2n + 4n + 16n","note":"D2","active":false},{"time":"2n + 4n + 8n","note":"D2","active":false},{"time":"2n + 4n + 8n + 16n","note":"D2","active":false}],"$$hashKey":"object:1452"},{"note":"C2","steps":[{"time":"0","note":"C2","active":false},{"time":"16n","note":"C2","active":false},{"time":"8n","note":"C2","active":true},{"time":"8n + 16n","note":"C2","active":false},{"time":"4n","note":"C2","active":false},{"time":"4n + 16n","note":"C2","active":false},{"time":"4n + 8n","note":"C2","active":false},{"time":"4n + 8n + 16n","note":"C2","active":false},{"time":"2n","note":"C2","active":false},{"time":"2n + 16n","note":"C2","active":false},{"time":"2n + 8n","note":"C2","active":false},{"time":"2n + 8n + 16n","note":"C2","active":false},{"time":"2n + 4n","note":"C2","active":false},{"time":"2n + 4n + 16n","note":"C2","active":true},{"time":"2n + 4n + 8n","note":"C2","active":false},{"time":"2n + 4n + 8n + 16n","note":"C2","active":false}],"$$hashKey":"object:1453"},{"note":"B1","steps":[{"time":"0","note":"B1","active":false},{"time":"16n","note":"B1","active":false},{"time":"8n","note":"B1","active":false},{"time":"8n + 16n","note":"B1","active":false},{"time":"4n","note":"B1","active":false},{"time":"4n + 16n","note":"B1","active":false},{"time":"4n + 8n","note":"B1","active":false},{"time":"4n + 8n + 16n","note":"B1","active":false},{"time":"2n","note":"B1","active":false},{"time":"2n + 16n","note":"B1","active":false},{"time":"2n + 8n","note":"B1","active":false},{"time":"2n + 8n + 16n","note":"B1","active":false},{"time":"2n + 4n","note":"B1","active":false},{"time":"2n + 4n + 16n","note":"B1","active":false},{"time":"2n + 4n + 8n","note":"B1","active":false},{"time":"2n + 4n + 8n + 16n","note":"B1","active":false}],"$$hashKey":"object:1454"},{"note":"A1","steps":[{"time":"0","note":"A1","active":false},{"time":"16n","note":"A1","active":false},{"time":"8n","note":"A1","active":false},{"time":"8n + 16n","note":"A1","active":false},{"time":"4n","note":"A1","active":false},{"time":"4n + 16n","note":"A1","active":false},{"time":"4n + 8n","note":"A1","active":false},{"time":"4n + 8n + 16n","note":"A1","active":false},{"time":"2n","note":"A1","active":false},{"time":"2n + 16n","note":"A1","active":false},{"time":"2n + 8n","note":"A1","active":false},{"time":"2n + 8n + 16n","note":"A1","active":false},{"time":"2n + 4n","note":"A1","active":false},{"time":"2n + 4n + 16n","note":"A1","active":false},{"time":"2n + 4n + 8n","note":"A1","active":false},{"time":"2n + 4n + 8n + 16n","note":"A1","active":false}],"$$hashKey":"object:1455"},{"note":"G1","steps":[{"time":"0","note":"G1","active":false},{"time":"16n","note":"G1","active":false},{"time":"8n","note":"G1","active":false},{"time":"8n + 16n","note":"G1","active":false},{"time":"4n","note":"G1","active":false},{"time":"4n + 16n","note":"G1","active":false},{"time":"4n + 8n","note":"G1","active":true},{"time":"4n + 8n + 16n","note":"G1","active":false},{"time":"2n","note":"G1","active":false},{"time":"2n + 16n","note":"G1","active":false},{"time":"2n + 8n","note":"G1","active":false},{"time":"2n + 8n + 16n","note":"G1","active":false},{"time":"2n + 4n","note":"G1","active":false},{"time":"2n + 4n + 16n","note":"G1","active":false},{"time":"2n + 4n + 8n","note":"G1","active":false},{"time":"2n + 4n + 8n + 16n","note":"G1","active":false}],"$$hashKey":"object:1456"},{"note":"F1","steps":[{"time":"0","note":"F1","active":false},{"time":"16n","note":"F1","active":false},{"time":"8n","note":"F1","active":false},{"time":"8n + 16n","note":"F1","active":false},{"time":"4n","note":"F1","active":false},{"time":"4n + 16n","note":"F1","active":false},{"time":"4n + 8n","note":"F1","active":false},{"time":"4n + 8n + 16n","note":"F1","active":false},{"time":"2n","note":"F1","active":false},{"time":"2n + 16n","note":"F1","active":false},{"time":"2n + 8n","note":"F1","active":false},{"time":"2n + 8n + 16n","note":"F1","active":false},{"time":"2n + 4n","note":"F1","active":false},{"time":"2n + 4n + 16n","note":"F1","active":false},{"time":"2n + 4n + 8n","note":"F1","active":false},{"time":"2n + 4n + 8n + 16n","note":"F1","active":false}],"$$hashKey":"object:1457"},{"note":"E1","steps":[{"time":"0","note":"E1","active":false},{"time":"16n","note":"E1","active":false},{"time":"8n","note":"E1","active":false},{"time":"8n + 16n","note":"E1","active":false},{"time":"4n","note":"E1","active":false},{"time":"4n + 16n","note":"E1","active":false},{"time":"4n + 8n","note":"E1","active":false},{"time":"4n + 8n + 16n","note":"E1","active":false},{"time":"2n","note":"E1","active":false},{"time":"2n + 16n","note":"E1","active":false},{"time":"2n + 8n","note":"E1","active":false},{"time":"2n + 8n + 16n","note":"E1","active":false},{"time":"2n + 4n","note":"E1","active":false},{"time":"2n + 4n + 16n","note":"E1","active":false},{"time":"2n + 4n + 8n","note":"E1","active":false},{"time":"2n + 4n + 8n + 16n","note":"E1","active":false}],"$$hashKey":"object:1458"},{"note":"D1","steps":[{"time":"0","note":"D1","active":false},{"time":"16n","note":"D1","active":false},{"time":"8n","note":"D1","active":false},{"time":"8n + 16n","note":"D1","active":false},{"time":"4n","note":"D1","active":false},{"time":"4n + 16n","note":"D1","active":false},{"time":"4n + 8n","note":"D1","active":false},{"time":"4n + 8n + 16n","note":"D1","active":false},{"time":"2n","note":"D1","active":false},{"time":"2n + 16n","note":"D1","active":false},{"time":"2n + 8n","note":"D1","active":false},{"time":"2n + 8n + 16n","note":"D1","active":false},{"time":"2n + 4n","note":"D1","active":false},{"time":"2n + 4n + 16n","note":"D1","active":false},{"time":"2n + 4n + 8n","note":"D1","active":false},{"time":"2n + 4n + 8n + 16n","note":"D1","active":false}],"$$hashKey":"object:1459"},{"note":"C1","steps":[{"time":"0","note":"C1","active":false},{"time":"16n","note":"C1","active":false},{"time":"8n","note":"C1","active":false},{"time":"8n + 16n","note":"C1","active":false},{"time":"4n","note":"C1","active":false},{"time":"4n + 16n","note":"C1","active":false},{"time":"4n + 8n","note":"C1","active":false},{"time":"4n + 8n + 16n","note":"C1","active":false},{"time":"2n","note":"C1","active":false},{"time":"2n + 16n","note":"C1","active":false},{"time":"2n + 8n","note":"C1","active":false},{"time":"2n + 8n + 16n","note":"C1","active":false},{"time":"2n + 4n","note":"C1","active":false},{"time":"2n + 4n + 16n","note":"C1","active":false},{"time":"2n + 4n + 8n","note":"C1","active":false},{"time":"2n + 4n + 8n + 16n","note":"C1","active":false}],"$$hashKey":"object:1460"}]},{"name":"Drums","instDef":{"componentName":"MultiPlayer","buffers":{"kick":"resources/kick.wav","snare1":"resources/snare1.wav","hat1":"resources/hat1.wav","clap":"resources/clap.wav","sfx":"resources/sfx.wav"},"effects":[],"options":{},"polyVoices":1},"notes":["kick","snare1","hat1","clap","sfx"],"rows":[{"note":"kick","steps":[{"time":"0","note":"kick","active":false},{"time":"16n","note":"kick","active":false},{"time":"8n","note":"kick","active":true},{"time":"8n + 16n","note":"kick","active":false},{"time":"4n","note":"kick","active":false},{"time":"4n + 16n","note":"kick","active":false},{"time":"4n + 8n","note":"kick","active":false},{"time":"4n + 8n + 16n","note":"kick","active":false},{"time":"2n","note":"kick","active":false},{"time":"2n + 16n","note":"kick","active":false},{"time":"2n + 8n","note":"kick","active":false},{"time":"2n + 8n + 16n","note":"kick","active":false},{"time":"2n + 4n","note":"kick","active":false},{"time":"2n + 4n + 16n","note":"kick","active":false},{"time":"2n + 4n + 8n","note":"kick","active":false},{"time":"2n + 4n + 8n + 16n","note":"kick","active":false}],"$$hashKey":"object:1699"},{"note":"snare1","steps":[{"time":"0","note":"snare1","active":false},{"time":"16n","note":"snare1","active":false},{"time":"8n","note":"snare1","active":false},{"time":"8n + 16n","note":"snare1","active":false},{"time":"4n","note":"snare1","active":false},{"time":"4n + 16n","note":"snare1","active":true},{"time":"4n + 8n","note":"snare1","active":false},{"time":"4n + 8n + 16n","note":"snare1","active":true},{"time":"2n","note":"snare1","active":false},{"time":"2n + 16n","note":"snare1","active":false},{"time":"2n + 8n","note":"snare1","active":false},{"time":"2n + 8n + 16n","note":"snare1","active":false},{"time":"2n + 4n","note":"snare1","active":false},{"time":"2n + 4n + 16n","note":"snare1","active":true},{"time":"2n + 4n + 8n","note":"snare1","active":false},{"time":"2n + 4n + 8n + 16n","note":"snare1","active":false}],"$$hashKey":"object:1700"},{"note":"hat1","steps":[{"time":"0","note":"hat1","active":false},{"time":"16n","note":"hat1","active":false},{"time":"8n","note":"hat1","active":false},{"time":"8n + 16n","note":"hat1","active":false},{"time":"4n","note":"hat1","active":false},{"time":"4n + 16n","note":"hat1","active":false},{"time":"4n + 8n","note":"hat1","active":false},{"time":"4n + 8n + 16n","note":"hat1","active":false},{"time":"2n","note":"hat1","active":false},{"time":"2n + 16n","note":"hat1","active":false},{"time":"2n + 8n","note":"hat1","active":false},{"time":"2n + 8n + 16n","note":"hat1","active":false},{"time":"2n + 4n","note":"hat1","active":false},{"time":"2n + 4n + 16n","note":"hat1","active":false},{"time":"2n + 4n + 8n","note":"hat1","active":false},{"time":"2n + 4n + 8n + 16n","note":"hat1","active":false}],"$$hashKey":"object:1701"},{"note":"clap","steps":[{"time":"0","note":"clap","active":false},{"time":"16n","note":"clap","active":false},{"time":"8n","note":"clap","active":true},{"time":"8n + 16n","note":"clap","active":false},{"time":"4n","note":"clap","active":false},{"time":"4n + 16n","note":"clap","active":false},{"time":"4n + 8n","note":"clap","active":false},{"time":"4n + 8n + 16n","note":"clap","active":false},{"time":"2n","note":"clap","active":true},{"time":"2n + 16n","note":"clap","active":false},{"time":"2n + 8n","note":"clap","active":false},{"time":"2n + 8n + 16n","note":"clap","active":true},{"time":"2n + 4n","note":"clap","active":false},{"time":"2n + 4n + 16n","note":"clap","active":false},{"time":"2n + 4n + 8n","note":"clap","active":false},{"time":"2n + 4n + 8n + 16n","note":"clap","active":false}],"$$hashKey":"object:1702"},{"note":"sfx","steps":[{"time":"0","note":"sfx","active":false},{"time":"16n","note":"sfx","active":false},{"time":"8n","note":"sfx","active":false},{"time":"8n + 16n","note":"sfx","active":false},{"time":"4n","note":"sfx","active":false},{"time":"4n + 16n","note":"sfx","active":false},{"time":"4n + 8n","note":"sfx","active":false},{"time":"4n + 8n + 16n","note":"sfx","active":false},{"time":"2n","note":"sfx","active":false},{"time":"2n + 16n","note":"sfx","active":false},{"time":"2n + 8n","note":"sfx","active":true},{"time":"2n + 8n + 16n","note":"sfx","active":false},{"time":"2n + 4n","note":"sfx","active":false},{"time":"2n + 4n + 16n","note":"sfx","active":false},{"time":"2n + 4n + 8n","note":"sfx","active":false},{"time":"2n + 4n + 8n + 16n","note":"sfx","active":false}],"$$hashKey":"object:1703"}]}]}'

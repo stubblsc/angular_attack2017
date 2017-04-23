@@ -1,6 +1,6 @@
 <div class="instrument-editor">
     <div>
-        <h4>{{inst.inst}}</h4>
+        <h4>{{inst.name}}</h4>
     </div>
     <hr/>
     <div ng-repeat="fx in inst.fx" class="fx-toggle {{fx.connected ? 'active' : ''}}" ng-click="inst.toggleFx($index)">{{fx.name}}</div>
