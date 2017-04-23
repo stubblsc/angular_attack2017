@@ -17,7 +17,9 @@ app.service("userSession", function($auth, $rootScope, ngDialog) {
 				$auth.submitRegistration(data.value).then(function(resp) {
 					$rootScope.$broadcast("play:user:registered");
 				}).catch(function(resp) {
-					// handleFailedRegistration
+					resp.data.errors.full_messages.forEach(function(err){
+            alert(err)
+          })
 				});
 			}
 		})
@@ -30,7 +32,9 @@ app.service("userSession", function($auth, $rootScope, ngDialog) {
 					currentUserData = resp;
 					$rootScope.$broadcast("play:user:authenticated");
 				}).catch(function(resp) {
-					// TODO
+          resp.errors.forEach(function(err){
+            alert(err)
+          })
 				});
 			}
 		});
