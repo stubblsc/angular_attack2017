@@ -1,5 +1,5 @@
 class SongsController < ApplicationController
-  before_action :set_song, only: [:show, :update]
+  before_action :set_song, only: [:update]
   before_filter :authenticate_user!, only: [:create, :update]
 
   # GET /songs
@@ -11,6 +11,7 @@ class SongsController < ApplicationController
 
   # GET /songs/1
   def show
+    @song = Song.find_by(permalink: params[:permalink])
     render json: @song
   end
 
