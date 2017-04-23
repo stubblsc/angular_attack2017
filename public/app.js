@@ -1,6 +1,34 @@
-var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
+var app = angular.module("play", ['ui.slider', "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
 
-app.service("userSession", function($auth, $rootScope, ngDialog) {
+app.service("dialogs", function(ngDialog) {
+	// helper method to display a standard modal form
+	this.modalForm = function(template, scope) {
+		return ngDialog.open({
+			className: 'dialog-wrapper',
+			showClose: false,
+			closeByEscape: false,
+			closeByDocument: false,
+			template: template,
+			scope: scope
+		}).closePromise
+	}
+
+	this.showAlert = function(templateStr, time) {
+		return ngDialog.open({
+			className: 'dialog-wrapper',
+			showClose: false,
+			plain: true,
+			template: templateStr,
+			controller: function($scope, $timeout) {
+				if (time != null) {
+					$timeout($scope.closeThisDialog, time);
+				}
+			}
+		}).closePromise
+	}
+})
+
+app.service("userSession", function($auth, $rootScope, dialogs) {
 	var currentUserData = null;
 
 	$rootScope.$on("auth:validation-success", function(evt, data) {
@@ -12,25 +40,33 @@ app.service("userSession", function($auth, $rootScope, ngDialog) {
 	})
 
 	this.register = function() {
-		modalForm("_register.html", $rootScope).then(function(data) {
+		dialogs.modalForm("_register.html", $rootScope).then(function(data) {
 			if (data.value != null) {
 				$auth.submitRegistration(data.value).then(function(resp) {
 					$rootScope.$broadcast("play:user:registered");
 				}).catch(function(resp) {
-					// handleFailedRegistration
+					dialogs.showAlert(
+						"<div class='text-center alert alert-danger'>" +
+						"<b>Something went wrong signing you up...</b><br/><br/>" +
+						resp.data.errors.full_messages.join("<br/>") +
+						"</div>", 5000);
 				});
 			}
 		})
 	}
 
 	this.login = function(data) {
-		modalForm("_login.html", $rootScope).then(function(data) {
+		dialogs.modalForm("_login.html", $rootScope).then(function(data) {
 			if (data.value != null) {
 				$auth.submitLogin(data.value).then(function(resp) {
 					currentUserData = resp;
 					$rootScope.$broadcast("play:user:authenticated");
 				}).catch(function(resp) {
-					// TODO
+					dialogs.showAlert(
+						"<div class='text-center alert alert-danger'>" +
+						"<b>Sorry, we couldn't sign you in</b><br/><br/>" +
+						resp.errors.join("<br/>") +
+						"</div>", 1500);
 				});
 			}
 		});
@@ -39,22 +75,14 @@ app.service("userSession", function($auth, $rootScope, ngDialog) {
 	this.logout = function() {
 		currentUserData = null;
 		$auth.signOut();
+		dialogs.showAlert(
+			"<div class='text-center alert alert-info'>" +
+			"Signed Out" +
+			"</div>", 1000);
 	}
 
 	this.currentUser = function() {
 		return currentUserData;
-	}
-
-	// helper method to display a standard modal form
-	function modalForm(template, scope) {
-		return ngDialog.open({
-			className: 'dialog-wrapper',
-			showClose: false,
-			closeByEscape: false,
-			closeByDocument: false,
-			template: template,
-			scope: scope
-		}).closePromise
 	}
 })
 
@@ -92,7 +120,7 @@ var InstrumentList = {
 	}
 };
 
-app.controller("MasterCtrl", ["$rootScope", "$scope", function($rs, $scope) {
+app.controller("MasterCtrl", ["$rootScope", "$scope", "userSession", "$http", "dialogs", function($rs, $scope, userSession, $http, dialogs) {
 	var c = this;
 
 	c.play = function() {
@@ -125,6 +153,20 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", function($rs, $scope) {
 		Tone.Transport.bpm.value = c.bpm;
 	})
 
+	c.signedIn = function() {
+		return userSession.currentUser() != null;
+	}
+
+	c.editSongTitle = function() {
+		dialogs.modalForm("_songname.html", $scope).then(
+			function(result) {
+				if(result.value != null) {
+                    c.track.name = result.value;
+                }
+			}
+		);
+	}
+
 	var notes = [
 		["C", 0],
 		["D", 0],
@@ -142,7 +184,7 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", function($rs, $scope) {
 		c.stop();
 		Tone.Transport.cancel(0);
 		c.track.reset();
-        _renderloop = restartRenderLoop();
+		_renderloop = restartRenderLoop();
 	}
 
 	c.save = function() {
@@ -157,8 +199,8 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", function($rs, $scope) {
 		for (var t in payload.tracks) {
 			newSong.addTrack(payload.tracks[t])
 		}
-        c.track.dispose();
-        c.track = null;
+		c.track.dispose();
+		c.track = null;
 		c.track = newSong;
 		c.stepLen = payload.stepLen;
 		c.stepCount = String(payload.steps);
@@ -200,7 +242,7 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", function($rs, $scope) {
 	}
 
 	function restartRenderLoop() {
-        if (_renderloop) {
+		if (_renderloop) {
 			_renderloop.dispose()
 		}
 		return new Tone.Loop(function(time) {

@@ -1,4 +1,5 @@
 function Song(steps, stepLen) {
+    this.name = "New Song";
 	this.steps = steps || 32;
 	this.stepLen = stepLen || "8n";
 	this.insts = [];
@@ -41,6 +42,7 @@ Song.prototype.serialize = function() {
 	}
 
 	return {
+        name: this.name,
 		steps: this.steps,
 		stepLen: this.stepLen,
 		tracks: tracks
@@ -48,9 +50,9 @@ Song.prototype.serialize = function() {
 }
 
 Song.prototype.dispose = function() {
-    for(var i in this.insts) {
-        this.insts[i].dispose();
-    }
+	for (var i in this.insts) {
+		this.insts[i].dispose();
+	}
 
-    this.insts = null;
+	this.insts = null;
 }

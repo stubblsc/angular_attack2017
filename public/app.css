@@ -98,3 +98,21 @@ span.divider {
     background-color: purple;
     border: 1px solid violet;
 }
+
+.click-to-edit {
+    background-color: transparent;
+    text-align: center!important;
+    border: none;
+    border-radius: 0;
+    color: white;
+    font-size: 14pt;
+    width: 200px;
+}
+
+.click-to-edit:focus {
+    box-shadow: none;
+}
+
+.click-to-edit.edit:focus {
+    border-bottom: 2px white;
+}

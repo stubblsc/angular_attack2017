@@ -74,6 +74,8 @@ function Track(def, steps, stepLen) {
 
 	ix.__def = def;
 
+    ix.id = ix.__def.id;
+
 	ix.name = ix.__def.name;
 	ix.notes = ix.__def.notes;
 	ix.inst = BuildInstrument(ix.__def.instDef);
@@ -291,7 +293,7 @@ Track.prototype.serialize = function() {
 
 Track.prototype.dispose = function() {
     this.cleanup();
-    
+
 	for (var i in this.fx) {
 		this.fx[i].effect.dispose()
 	}
