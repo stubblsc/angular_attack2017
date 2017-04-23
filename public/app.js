@@ -1,6 +1,19 @@
 var app = angular.module("play", ["ui.router", "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
 
+app.service("instruments", function() {
+  var instruments = {
+
+  }
+
+  this.get = function(name) {}
+});
+
+app.service("effects", function() {});
+
 app.service("userSession", function($auth, $rootScope, ngDialog) {
+
+  var currentUserData = null;
+
   this.register = function() {
     modalForm("_register.html", $rootScope).then(function(data) {
       if (data.value != null) {
@@ -17,6 +30,7 @@ app.service("userSession", function($auth, $rootScope, ngDialog) {
     modalForm("_login.html", $rootScope).then(function(data) {
       if (data.value != null) {
         $auth.submitLogin(data.value).then(function(resp) {
+          currentUserData = resp.data;
           $rootScope.$broadcast("play:user:authenticated");
         }).catch(function(resp) {
           // TODO
@@ -26,9 +40,15 @@ app.service("userSession", function($auth, $rootScope, ngDialog) {
   }
 
   this.logout = function() {
+    currentUserData = null;
     $auth.signOut();
   }
 
+  this.currentUser = function() {
+    return currentUserData;
+  }
+
+  // helper method to display a standard modal form
   function modalForm(template, scope) {
     return ngDialog.open({
       className: 'dialog-wrapper',
@@ -232,19 +252,7 @@ function Instrument(inst, notes, steps, stepLen, initialFx) {
 
   ix.mute = false;
 
-  ix.fx = initialFx || []
-  /*[
-    {
-      name: "Delay",
-      connected: false,
-      effect: new Tone.PingPongDelay("32n").toMaster()
-    },
-    {
-      name: "Reverb",
-      connected: true,
-      effect: new Tone.Freeverb(0.2, 1000).toMaster()
-    }
-]*/
+  ix.fx = initialFx || [];
 
   ix.__inst = InstrumentList[ix.inst]();
   ix.__inst.fan.apply(ix.__inst, ix.fx.filter(function(i) {
