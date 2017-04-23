@@ -1,5 +1,6 @@
 class SongsController < ApplicationController
-  before_action :set_song, only: [:show, :update, :destroy]
+  before_action :set_song, only: [:show]
+  before_action :authenticate_user!, only: [:create]
 
   # GET /songs
   def index
@@ -22,20 +23,6 @@ class SongsController < ApplicationController
     else
       render json: @song.errors, status: :unprocessable_entity
     end
-  end
-
-  # PATCH/PUT /songs/1
-  def update
-    if @song.update(song_params)
-      render json: @song
-    else
-      render json: @song.errors, status: :unprocessable_entity
-    end
-  end
-
-  # DELETE /songs/1
-  def destroy
-    @song.destroy
   end
 
   private
