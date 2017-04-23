@@ -11,6 +11,7 @@ app.service("instruments", function() {
 app.service("effects", function() {});
 
 app.service("userSession", function($auth, $rootScope, ngDialog) {
+  alert($auth.validateUser())
 
   var currentUserData = null;
 
