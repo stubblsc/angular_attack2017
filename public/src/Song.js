@@ -42,6 +42,7 @@ Song.prototype.serialize = function() {
 	}
 
 	return {
+        id: this.name,
         name: this.name,
 		steps: this.steps,
 		stepLen: this.stepLen,

@@ -1,4 +1,10 @@
-var app = angular.module("play", ['ui.slider', "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
+var app = angular.module("play", ['ui.slider', 'ngCookies', "ui.bootstrap", "ngDialog", 'ui.toggle', 'ng-token-auth']);
+
+app.config(function($authProvider) {
+	$authProvider.configure({
+		apiUrl: '//localhost:3000'
+	});
+});
 
 app.service("dialogs", function(ngDialog) {
 	// helper method to display a standard modal form
@@ -120,7 +126,7 @@ var InstrumentList = {
 	}
 };
 
-app.controller("MasterCtrl", ["$rootScope", "$scope", "userSession", "$http", "dialogs", function($rs, $scope, userSession, $http, dialogs) {
+app.controller("MasterCtrl", ["$rootScope", "$scope", "userSession", "$http", "dialogs", "$cookies", function($rs, $scope, userSession, $http, dialogs, $cookies) {
 	var c = this;
 
 	c.play = function() {
@@ -160,9 +166,9 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", "userSession", "$http", "d
 	c.editSongTitle = function() {
 		dialogs.modalForm("_songname.html", $scope).then(
 			function(result) {
-				if(result.value != null) {
-                    c.track.name = result.value;
-                }
+				if (result.value != null) {
+					c.track.name = result.value;
+				}
 			}
 		);
 	}
@@ -188,7 +194,144 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", "userSession", "$http", "d
 	}
 
 	c.save = function() {
-		SAVED = JSON.stringify(c.track.serialize());
+		if (!c.signedIn()) {
+			dialogs.showAlert("<div class='alert alert-info'>Not signed in...</div>", 500);
+			return;
+		}
+
+		if (c.track.id != null && typeof c.track.id != 'undefined') {
+			c.update();
+			return
+		}
+
+		var data = c.track.serialize();
+		data.bpm = c.bpm;
+
+		var payload = JSON.stringify(data);
+
+		var auth_headers = JSON.parse($cookies.get("auth_headers"));
+
+		$http.post("/songs", {
+			song: {
+				payload: payload,
+				name: c.track.name,
+				user_id: userSession.currentUser().id
+			}
+		}, {
+			headers: auth_headers
+		}).then(function(resp) {
+			c.track.id = resp.data.id;
+			dialogs.showAlert("<div class='alert alert-success'>Saved</div>", 1500);
+            var h = resp.headers()
+            var at = auth_headers["access-token"];
+            var exp = auth_headers["expiry"];
+            var cli = auth_headers["client"];
+            if(h["access-token"]) {
+                at = h["access-token"];
+            }
+            if(h["expiry"]) {
+                exp = h["expiry"];
+            }
+            if(h["client"]) {
+                cli = h["client"]
+            }
+
+            $cookies.put("auth_headers", JSON.stringify({
+                "access-token": at,
+                "uid": userSession.currentUser().uid,
+                "token-type": "Bearer",
+                "expiry": exp,
+                "client": cli
+            }))
+		}, function(resp) {
+            var h = resp.headers()
+            var at = auth_headers["access-token"];
+            var exp = auth_headers["expiry"];
+            var cli = auth_headers["client"];
+            if(h["access-token"]) {
+                at = h["access-token"];
+            }
+            if(h["expiry"]) {
+                exp = h["expiry"];
+            }
+            if(h["client"]) {
+                cli = h["client"]
+            }
+
+            $cookies.put("auth_headers", JSON.stringify({
+                "access-token": at,
+                "uid": userSession.currentUser().uid,
+                "token-type": "Bearer",
+                "expiry": exp,
+                "client": cli
+            }))
+			dialogs.showAlert("<div class='alert alert-danger'>Saving failed...</div>");
+		});
+	}
+
+	c.update = function() {
+		var data = c.track.serialize();
+		data.bpm = c.bpm;
+
+		var payload = JSON.stringify(data);
+
+		var auth_headers = JSON.parse($cookies.get("auth_headers"));
+
+		$http.put("/songs/" + c.track.id , {
+			song: {
+				payload: payload,
+				name: c.track.name,
+				user_id: userSession.currentUser().id
+			}
+		}, {
+			headers: auth_headers
+		}).then(function(resp) {
+			dialogs.showAlert("<div class='alert alert-success'>Saved</div>", 1500);
+            var h = resp.headers()
+            var at = auth_headers["access-token"];
+            var exp = auth_headers["expiry"];
+            var cli = auth_headers["client"];
+            if(h["access-token"]) {
+                at = h["access-token"];
+            }
+            if(h["expiry"]) {
+                exp = h["expiry"];
+            }
+            if(h["client"]) {
+                cli = h["client"]
+            }
+
+            $cookies.put("auth_headers", JSON.stringify({
+                "access-token": at,
+                "uid": userSession.currentUser().uid,
+                "token-type": "Bearer",
+                "expiry": exp,
+                "client": cli
+            }))
+		}, function(resp) {
+            var h = resp.headers()
+            var at = auth_headers["access-token"];
+            var exp = auth_headers["expiry"];
+            var cli = auth_headers["client"];
+            if(h["access-token"]) {
+                at = h["access-token"];
+            }
+            if(h["expiry"]) {
+                exp = h["expiry"];
+            }
+            if(h["client"]) {
+                cli = h["client"]
+            }
+
+            $cookies.put("auth_headers", JSON.stringify({
+                "access-token": at,
+                "uid": userSession.currentUser().uid,
+                "token-type": "Bearer",
+                "expiry": exp,
+                "client": cli
+            }))
+			dialogs.showAlert("<div class='alert alert-danger'>Saving failed...</div>");
+		});
 	}
 
 	c.load = function() {
@@ -199,11 +342,16 @@ app.controller("MasterCtrl", ["$rootScope", "$scope", "userSession", "$http", "d
 		for (var t in payload.tracks) {
 			newSong.addTrack(payload.tracks[t])
 		}
+
+		newSong.name = payload.name;
+		newSong.id = payload.id;
+
 		c.track.dispose();
 		c.track = null;
 		c.track = newSong;
 		c.stepLen = payload.stepLen;
 		c.stepCount = String(payload.steps);
+		c.bpm = payload.bpm;
 		//newSong.schedule();
 	}
 

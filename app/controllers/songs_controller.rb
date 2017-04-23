@@ -1,6 +1,6 @@
 class SongsController < ApplicationController
   before_action :set_song, only: [:show, :update]
-  before_action :authenticate_user!, only: [:create, :update]
+  before_filter :authenticate_user!, only: [:create, :update]
 
   # GET /songs
   def index
