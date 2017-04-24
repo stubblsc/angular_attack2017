@@ -7,6 +7,7 @@ class Song < ApplicationRecord
   private
 
   def generate_permalink
-    self.update_params(:permalink, (0...7).map { ('a'..'z').to_a[rand(26)] }.join)
+    self.permalink = (0...7).map { ('a'..'z').to_a[rand(26)] }.join
+    self.save
   end
 end
